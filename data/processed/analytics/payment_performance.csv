@@ -1,0 +1,7 @@
+payment_method,transaction_count,realized_revenue,transaction_share
+UPI,21450,844924577.79,42.9
+Cash,8860,352154484.28,17.72
+Debit Card,7635,292291732.95,15.27
+Credit Card,7159,286680252.75,14.318
+Digital Wallet,3947,154642093.76,7.893999999999999
+Net Banking,949,37186414.93,1.8980000000000001

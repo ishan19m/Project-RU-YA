@@ -1,0 +1,2 @@
+total_transactions,total_orders,total_units_sold,gross_revenue_before_returns,realized_revenue,realized_profit,average_order_value,profit_margin_percentage,return_count,return_rate_percentage,average_discount_percentage
+50000,28222,55818,2036955970.9099998,1967879556.46,257466836.46,69728.56482389625,13.083465175234336,2358,4.716,12.615727000000001
