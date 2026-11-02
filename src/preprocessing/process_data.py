@@ -410,6 +410,75 @@ def process() -> tuple[pd.DataFrame, pd.DataFrame]:
     print_validation_report(original_count, sales, monthly)
     return sales, monthly
 
+def normalize_upload(raw: pd.DataFrame) -> pd.DataFrame:
+    """Convert an uploaded retail CSV into the cleaned_sales schema used by analytics."""
+    from config import COLUMN_MAP, REQUIRED_COLUMNS
+
+    df = raw.copy()
+    df.columns = [
+        str(c).replace("\ufeff", "").strip().lower().replace(" ", "_")
+        for c in df.columns
+    ]
+    df = df.rename(columns={c: COLUMN_MAP[c] for c in df.columns if c in COLUMN_MAP})
+    df = df.loc[:, ~df.columns.duplicated()]
+
+    if "revenue" not in df.columns and "net_sales" in df.columns:
+        df["revenue"] = df["net_sales"]
+    if "profit" not in df.columns and "gross_profit" in df.columns:
+        df["profit"] = df["gross_profit"]
+
+    missing = [c for c in REQUIRED_COLUMNS if c not in df.columns]
+    if missing:
+        raise ValueError(f"Uploaded CSV is missing required columns: {missing}")
+
+    df["transaction_date"] = pd.to_datetime(df["transaction_date"], errors="coerce")
+    df = df.loc[df["transaction_date"].notna()].reset_index(drop=True)
+    if df.empty:
+        raise ValueError("No rows with a valid date were found.")
+
+    for col in ["quantity", "revenue", "profit", "unit_price", "unit_cost",
+                "discount_percentage", "discount_amount"]:
+        if col in df.columns:
+            df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0)
+        else:
+            df[col] = 0.0
+
+    if "is_returned" in df.columns:
+        flag = df["is_returned"].astype(str).str.strip().str.lower()
+    elif "return_status" in df.columns:
+        flag = df["return_status"].astype(str).str.strip().str.lower()
+    else:
+        flag = pd.Series("no", index=df.index)
+    df["is_returned"] = flag.isin(["returned", "return", "yes", "true", "1"])
+
+    if "transaction_id" not in df.columns:
+        if df["order_id"].is_unique:
+            df["transaction_id"] = df["order_id"].astype(str)
+        else:
+            df["transaction_id"] = [f"TXN{i:07d}" for i in range(1, len(df) + 1)]
+    if "product_id" not in df.columns:
+        df["product_id"] = pd.factorize(df["product_name"])[0] + 1
+
+    for col in ["brand", "sales_channel", "payment_method", "customer_segment",
+                "sale_locality", "city"]:
+        if col not in df.columns:
+            df[col] = "Unknown"
+        df[col] = df[col].fillna("Unknown").astype(str)
+    df["customer_locality"] = df["sale_locality"]
+    df["locality"] = df["sale_locality"]
+
+    df["net_sales"] = df["revenue"]
+    df["gross_profit"] = df["profit"]
+    df["order_month"] = df["transaction_date"].dt.to_period("M").astype(str)
+    df["is_valid"] = True
+    return df
+
+
+def process_upload(raw: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Upload pipeline: returns (cleaned_sales, monthly_sales). Nothing is written to disk."""
+    cleaned = normalize_upload(raw)
+    monthly = build_monthly_sales(cleaned)
+    return cleaned, monthly
 
 def main() -> int:
     try:

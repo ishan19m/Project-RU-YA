@@ -24,12 +24,12 @@ OUTPUT_DIR = os.path.join(
     BASE_DIR, "data", "processed", "forecasting"
 )
 
-os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 
-def load_monthly_data():
 
-    df = pd.read_csv(DATA_PATH)
+def load_monthly_data(monthly_df=None):
+
+    df = pd.read_csv(DATA_PATH) if monthly_df is None else monthly_df.copy()
 
     df["month"] = pd.to_datetime(df["month"])
 
@@ -103,7 +103,7 @@ def create_ml_features(df):
     return data.dropna().reset_index(drop=True)
 
 
-def evaluate_models(df):
+def evaluate_models(df, save=True):
 
     print("\nEvaluating forecasting models...")
 
@@ -207,10 +207,12 @@ def evaluate_models(df):
         "RMSE"
     ).reset_index(drop=True)
 
-    results_df.to_csv(
-        os.path.join(OUTPUT_DIR, "model_evaluation.csv"),
-        index=False
-    )
+    if save:
+        os.makedirs(OUTPUT_DIR, exist_ok=True)
+        results_df.to_csv(
+            os.path.join(OUTPUT_DIR, "model_evaluation.csv"),
+            index=False
+        )
 
     print("\nMODEL PERFORMANCE")
     print("=" * 60)
@@ -218,7 +220,7 @@ def evaluate_models(df):
 
     return results_df
 
-def generate_future_forecast(df):
+def generate_future_forecast(df, save=True):
 
     print("\nGenerating 12-month future forecast...")
 
@@ -249,10 +251,12 @@ def generate_future_forecast(df):
         forecast_df["forecasted_revenue"].clip(lower=0)
     )
 
-    forecast_df.to_csv(
-        os.path.join(OUTPUT_DIR, "future_forecast.csv"),
-        index=False
-    )
+    if save:
+        os.makedirs(OUTPUT_DIR, exist_ok=True)
+        forecast_df.to_csv(
+            os.path.join(OUTPUT_DIR, "future_forecast.csv"),
+            index=False
+        )
 
     print("\n12-MONTH REVENUE FORECAST")
     print("=" * 60)
