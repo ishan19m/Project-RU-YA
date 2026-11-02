@@ -1,0 +1,8 @@
+/.venv
+/.venv-1
+/frontend
+/data
+/database
+/notebooks
+/tests
+/test_pipeline.py

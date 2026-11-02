@@ -47,8 +47,6 @@ DATABASE_PATH = ROOT_DIR / "database" / "ruya.db"
 
 EXPORT_DIR = ROOT_DIR / "data" / "processed" / "analytics"
 
-EXPORT_DIR.mkdir(parents=True, exist_ok=True)
-
 engine = create_engine(
     f"sqlite:///{DATABASE_PATH.as_posix()}",
     echo=False
@@ -695,6 +693,8 @@ def calculate_payment_performance(df):
 
 def export_results(results):
 
+    EXPORT_DIR.mkdir(parents=True, exist_ok=True)
+
     for name, dataframe in results.items():
 
         if isinstance(dataframe, pd.DataFrame):
@@ -715,7 +715,7 @@ def export_results(results):
 # MAIN ANALYTICS PIPELINE
 # =========================================================
 
-def run_all_analytics():
+def run_all_analytics(df=None, export=True):
 
     print("\n")
     print("=" * 60)
@@ -725,7 +725,7 @@ def run_all_analytics():
 
     print("\nLoading database...")
 
-    raw_df = load_sales_data()
+    raw_df = load_sales_data() if df is None else df
 
     df = prepare_data(raw_df)
 
@@ -787,7 +787,8 @@ def run_all_analytics():
 
     print("\nExporting analytical results...")
 
-    export_results(results)
+    if export:
+        export_results(results)
 
     print("\n")
     print("=" * 60)
